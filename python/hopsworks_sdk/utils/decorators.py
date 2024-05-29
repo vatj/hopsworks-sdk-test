@@ -1,5 +1,5 @@
 #
-#   Copyright 2020 Logical Clocks AB
+#   Copyright 2022 Logical Clocks AB
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -15,13 +15,14 @@
 #
 from __future__ import annotations
 
-import functools
 import os
+import functools
+from typing import Any, Callable
 
 
-def not_connected(fn):
+def not_connected(fn) -> Callable:
     @functools.wraps(fn)
-    def if_not_connected(inst, *args, **kwargs):
+    def if_not_connected(inst, *args, **kwargs) -> Any:
         if inst._connected:
             raise HopsworksConnectionError
         return fn(inst, *args, **kwargs)
@@ -29,9 +30,9 @@ def not_connected(fn):
     return if_not_connected
 
 
-def connected(fn):
+def connected(fn) -> Callable:
     @functools.wraps(fn)
-    def if_connected(inst, *args, **kwargs):
+    def if_connected(inst, *args, **kwargs) -> Any:
         if not inst._connected:
             raise NoHopsworksConnectionError
         return fn(inst, *args, **kwargs)
@@ -53,7 +54,7 @@ class NoHopsworksConnectionError(Exception):
 
     def __init__(self):
         super().__init__(
-            "Connection is not active. Needs to be connected for feature store operations."
+            "Connection is not active. Needs to be connected for hopsworks operations."
         )
 
 

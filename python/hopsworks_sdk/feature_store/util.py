@@ -15,7 +15,6 @@
 #
 from __future__ import annotations
 
-import asyncio
 import itertools
 import json
 import re
@@ -27,14 +26,13 @@ from urllib.parse import urljoin, urlparse
 
 import numpy as np
 import pandas as pd
-from aiomysql.sa import create_engine as async_create_engine
+
 from hsfs import client, feature, feature_group, serving_key
 from hsfs.client import exceptions
 from hsfs.client.exceptions import FeatureStoreException
 from hsfs.constructor import serving_prepared_statement
 from hsfs.core import feature_group_api, variable_api
-from sqlalchemy import create_engine
-from sqlalchemy.engine.url import make_url
+
 
 
 FEATURE_STORE_NAME_SUFFIX = "_featurestore"
@@ -124,50 +122,6 @@ def strip_feature_store_suffix(name: str) -> str:
         return name
 
 
-def create_mysql_engine(
-    online_conn: Any, external: bool, options: Optional[Dict[str, Any]] = None
-) -> Any:
-    online_options = online_conn.spark_options()
-    # Here we are replacing the first part of the string returned by Hopsworks,
-    # jdbc:mysql:// with the sqlalchemy one + username and password
-    # useSSL and allowPublicKeyRetrieval are not valid properties for the pymysql driver
-    # to use SSL we'll have to something like this:
-    # ssl_args = {'ssl_ca': ca_path}
-    # engine = create_engine("mysql+pymysql://<user>:<pass>@<addr>/<schema>", connect_args=ssl_args)
-    if external:
-        # This only works with external clients.
-        # Hopsworks clients should use the storage connector
-        host = get_host_name()
-        online_options["url"] = re.sub(
-            "/[0-9.]+:",
-            "/{}:".format(host),
-            online_options["url"],
-        )
-
-    sql_alchemy_conn_str = (
-        online_options["url"]
-        .replace(
-            "jdbc:mysql://",
-            "mysql+pymysql://"
-            + online_options["user"]
-            + ":"
-            + online_options["password"]
-            + "@",
-        )
-        .replace("useSSL=false&", "")
-        .replace("?allowPublicKeyRetrieval=true", "")
-    )
-    if options is not None and not isinstance(options, dict):
-        raise TypeError("`options` should be a `dict` type.")
-    if not options:
-        options = {"pool_recycle": 3600}
-    elif "pool_recycle" not in options:
-        options["pool_recycle"] = 3600
-    # default connection pool size kept by engine is 5
-    sql_alchemy_engine = create_engine(sql_alchemy_conn_str, **options)
-    return sql_alchemy_engine
-
-
 def get_host_name() -> str:
     host = variable_api.VariableApi().get_loadbalancer_external_domain()
     if host == "":
@@ -182,39 +136,6 @@ def get_dataset_type(path: str) -> Literal["HIVEDB", "DATASET"]:
         return "HIVEDB"
     else:
         return "DATASET"
-
-
-async def create_async_engine(
-    online_conn: Any,
-    external: bool,
-    default_min_size: int,
-    options: Optional[Dict[str, Any]] = None,
-) -> Any:
-    online_options = online_conn.spark_options()
-    # create a aiomysql connection pool
-    # read the keys user, password from online_conn as use them while creating the connection pool
-    url = make_url(online_options["url"].replace("jdbc:", ""))
-    if external:
-        hostname = get_host_name()
-    else:
-        hostname = url.host
-
-    pool = await async_create_engine(
-        host=hostname,
-        port=3306,
-        user=online_options["user"],
-        password=online_options["password"],
-        db=url.database,
-        loop=asyncio.get_running_loop(),
-        minsize=(
-            options.get("minsize", default_min_size) if options else default_min_size
-        ),
-        maxsize=(
-            options.get("maxsize", default_min_size) if options else default_min_size
-        ),
-        pool_recycle=(options.get("pool_recycle", -1) if options else -1),
-    )
-    return pool
 
 
 def check_timestamp_format_from_date_string(input_date: str) -> Tuple[str, str]:
