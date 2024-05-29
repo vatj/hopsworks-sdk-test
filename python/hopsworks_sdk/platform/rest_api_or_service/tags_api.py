@@ -19,7 +19,7 @@ import json
 
 from hsfs import feature_view
 from hopsworks_sdk.services import platform_client
-from hopsworks_sdk.platform import tag
+from hopsworks_sdk.platform.internal_or_core import tag
 
 
 class TagsApi:

@@ -30,56 +30,50 @@ import warnings
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, TYPE_CHECKING
 
 import avro
-import boto3
-import great_expectations as ge
+
 import hsfs
 import numpy as np
 import pandas as pd
 import polars as pl
 import pyarrow as pa
+
 import pytz
-from botocore.response import StreamingBody
-from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
-from hsfs import (
-    client,
+from hopsworks_sdk.feature_store import (
     feature,
     feature_store,
     feature_view,
-    transformation_function_attached,
     util,
 )
-from hsfs import storage_connector as sc
-from hsfs.client import hopsworks
-from hsfs.client.exceptions import FeatureStoreException
-from hsfs.constructor import query
-from hsfs.core import (
-    arrow_flight_client,
-    dataset_api,
+
+from hopsworks_sdk.feature_store import storage_connector as sc
+from hopsworks_sdk.services.platform_client import hopsworks
+from hopsworks_sdk.commons.exceptions import FeatureStoreException
+from hopsworks_sdk.feature_store.core_or_internal import query
+from hopsworks_sdk.feature_store.rest_api_or_service import (
     feature_group_api,
     feature_view_api,
-    ingestion_job_conf,
-    job,
-    job_api,
     statistics_api,
     storage_connector_api,
     training_dataset_api,
-    training_dataset_job_conf,
-    transformation_function_engine,
-    variable_api,
 )
 from hsfs.core.vector_db_client import VectorDbClient
 from hsfs.feature_group import ExternalFeatureGroup, FeatureGroup
 from hsfs.training_dataset import TrainingDataset
 from hsfs.training_dataset_split import TrainingDatasetSplit
-from pyhive import hive
-from pyhive.exc import OperationalError
 from sqlalchemy import sql
-from thrift.transport.TTransport import TTransportException
+
+from hopsworks_sdk.platform.rest_api_or_service import (
+    dataset_api, job_api
+)
+from hopsworks_sdk.services.feature_query_flight import arrow_flight_client
 from tqdm.auto import tqdm
 
+if TYPE_CHECKING:
+    import great_expectations as ge
+    from confluent_kafka import Producer
 
 # Disable pyhive INFO logging
 logging.getLogger("pyhive").setLevel(logging.WARNING)
@@ -159,7 +153,7 @@ class Engine:
         self,
         sql_query: str,
         feature_store: feature_store.FeatureStore,
-        online_conn: Optional["sc.OnlineStorageConnector"],
+        online_conn: Optional[sc.OnlineStorageConnector],
         dataframe_type: str,
         read_options: Optional[Dict[str, Any]],
         schema: Optional[List["feature.Feature"]] = None,
@@ -244,7 +238,7 @@ class Engine:
     def _jdbc(
         self,
         sql_query: str,
-        connector: "sc.OnlineStorageConnector",
+        connector: sc.OnlineStorageConnector,
         dataframe_type: str,
         read_options: Optional[Dict[str, Any]],
         schema: Optional[List["feature.Feature"]] = None,
@@ -273,7 +267,7 @@ class Engine:
 
     def read(
         self,
-        storage_connector: "sc.StorageConnector",
+        storage_connector: sc.StorageConnector,
         data_format: str,
         read_options: Optional[Dict[str, Any]],
         location: Optional[str],
@@ -317,7 +311,7 @@ class Engine:
             return pd.read_csv(obj)
         elif data_format.lower() == "tsv":
             return pd.read_csv(obj, sep="\t")
-        elif data_format.lower() == "parquet" and isinstance(obj, StreamingBody):
+        elif data_format.lower() == "parquet" and hasattr(obj, "set_socket_timeout"):
             return pd.read_parquet(BytesIO(obj.read()))
         elif data_format.lower() == "parquet":
             return pd.read_parquet(obj)
@@ -333,7 +327,7 @@ class Engine:
             return pl.read_csv(obj)
         elif data_format.lower() == "tsv":
             return pl.read_csv(obj, separator="\t")
-        elif data_format.lower() == "parquet" and isinstance(obj, StreamingBody):
+        elif data_format.lower() == "parquet" and hasattr(obj, "set_socket_timeout"):
             return pl.read_parquet(BytesIO(obj.read()), use_pyarrow=True)
         elif data_format.lower() == "parquet":
             return pl.read_parquet(obj, use_pyarrow=True)
@@ -423,62 +417,6 @@ class Engine:
                     df_list.append(df)
                 offset += 1
 
-        return df_list
-
-    def _read_s3(
-        self,
-        storage_connector: "sc.S3Connector",
-        location: str,
-        data_format: str,
-        dataframe_type: str = "default",
-    ) -> List[Union[pd.DataFrame, pl.DataFrame]]:
-        # get key prefix
-        path_parts = location.replace("s3://", "").split("/")
-        _ = path_parts.pop(0)  # pop first element -> bucket
-
-        prefix = "/".join(path_parts)
-
-        if storage_connector.session_token is not None:
-            s3 = boto3.client(
-                "s3",
-                aws_access_key_id=storage_connector.access_key,
-                aws_secret_access_key=storage_connector.secret_key,
-                aws_session_token=storage_connector.session_token,
-            )
-        else:
-            s3 = boto3.client(
-                "s3",
-                aws_access_key_id=storage_connector.access_key,
-                aws_secret_access_key=storage_connector.secret_key,
-            )
-
-        df_list = []
-        object_list = {"is_truncated": True}
-        while object_list.get("is_truncated", False):
-            if "NextContinuationToken" in object_list:
-                object_list = s3.list_objects_v2(
-                    Bucket=storage_connector.bucket,
-                    Prefix=prefix,
-                    MaxKeys=1000,
-                    ContinuationToken=object_list["NextContinuationToken"],
-                )
-            else:
-                object_list = s3.list_objects_v2(
-                    Bucket=storage_connector.bucket,
-                    Prefix=prefix,
-                    MaxKeys=1000,
-                )
-
-            for obj in object_list["Contents"]:
-                if not self._is_metadata_file(obj["Key"]) and obj["Size"] > 0:
-                    obj = s3.get_object(
-                        Bucket=storage_connector.bucket,
-                        Key=obj["Key"],
-                    )
-                    if dataframe_type.lower() == "polars":
-                        df_list.append(self._read_polars(data_format, obj["Body"]))
-                    else:
-                        df_list.append(self._read_pandas(data_format, obj["Body"]))
         return df_list
 
     def read_options(
@@ -1111,40 +1049,7 @@ class Engine:
         )
         return td_job
 
-    def _create_hive_connection(
-        self,
-        feature_store: feature_store.FeatureStore,
-        hive_config: Optional[Dict[str, Any]] = None,
-    ) -> hive.Connection:
-        host = variable_api.VariableApi().get_loadbalancer_external_domain()
-        if host == "":
-            # If the load balancer is not configured, then fall back to use
-            # the hive server on the head node
-            host = client.get_instance().host
-
-        try:
-            return hive.Connection(
-                host=host,
-                port=9085,
-                # database needs to be set every time, 'default' doesn't work in pyhive
-                database=feature_store,
-                configuration=hive_config,
-                auth="CERTIFICATES",
-                truststore=client.get_instance()._get_jks_trust_store_path(),
-                keystore=client.get_instance()._get_jks_key_store_path(),
-                keystore_password=client.get_instance()._cert_key,
-            )
-        except (TTransportException, AttributeError) as err:
-            raise ValueError(
-                f"Cannot connect to hive server. Please check the host name '{client.get_instance()._host}' "
-                "is correct and make sure port '9085' is open on host server."
-            ) from err
-        except OperationalError as err:
-            if err.args[0].status.statusCode == 3:
-                raise RuntimeError(
-                    f"Cannot access feature store '{feature_store}'. Please check if your project has the access right."
-                    f" It is possible to request access from data owners of '{feature_store}'."
-                ) from err
+    
 
     def _return_dataframe_type(
         self, dataframe: Union[pd.DataFrame, pl.DataFrame], dataframe_type: str
@@ -1268,32 +1173,6 @@ class Engine:
         feature_dataframe: Union[pd.DataFrame, pl.DataFrame], feature_name: str
     ) -> np.ndarray:
         return feature_dataframe[feature_name].unique()
-
-    def _init_kafka_producer(
-        self,
-        feature_group: Union[FeatureGroup, ExternalFeatureGroup],
-        offline_write_options: Dict[str, Any],
-    ) -> Producer:
-        # setup kafka producer
-        return Producer(
-            self._get_kafka_config(
-                feature_group.feature_store_id, offline_write_options
-            )
-        )
-
-    def _init_kafka_consumer(
-        self,
-        feature_group: Union[FeatureGroup, ExternalFeatureGroup],
-        offline_write_options: Dict[str, Any],
-    ) -> Consumer:
-        # setup kafka consumer
-        consumer_config = self._get_kafka_config(
-            feature_group.feature_store_id, offline_write_options
-        )
-        if "group.id" not in consumer_config:
-            consumer_config["group.id"] = "hsfs_consumer_group"
-
-        return Consumer(consumer_config)
 
     def _init_kafka_resources(
         self,

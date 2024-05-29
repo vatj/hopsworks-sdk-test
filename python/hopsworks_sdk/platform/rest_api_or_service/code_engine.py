@@ -18,8 +18,8 @@ from __future__ import annotations
 import datetime
 import os
 
-from hopsworks_sdk.platform import code
-from hopsworks_sdk.platform.core import code_api
+from hopsworks_sdk.platform.internal_or_core import code
+from hopsworks_sdk.platform.rest_api_or_service import code_api
 
 
 class CodeEngine:
