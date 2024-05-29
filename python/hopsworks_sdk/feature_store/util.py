@@ -38,14 +38,6 @@ from hsfs.core import feature_group_api, variable_api
 FEATURE_STORE_NAME_SUFFIX = "_featurestore"
 
 
-class FeatureStoreEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Dict[str, Any]:
-        try:
-            return o.to_dict()
-        except AttributeError:
-            return super().default(o)
-
-
 def validate_feature(
     ft: Union[str, feature.Feature, Dict[str, Any]],
 ) -> feature.Feature:
@@ -449,24 +441,6 @@ def build_serving_keys_from_prepared_statements(
                 )
             )
     return serving_keys
-
-
-class NpDatetimeEncoder(json.JSONEncoder):
-    def default(self, obj):
-        dtypes = (np.datetime64, np.complexfloating)
-        if isinstance(obj, (datetime, date)):
-            return convert_event_time_to_timestamp(obj)
-        elif isinstance(obj, dtypes):
-            return str(obj)
-        elif isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            if any([np.issubdtype(obj.dtype, i) for i in dtypes]):
-                return obj.astype(str).tolist()
-            return obj.tolist()
-        return super(NpDatetimeEncoder, self).default(obj)
 
 
 class VersionWarning(Warning):

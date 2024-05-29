@@ -33,14 +33,14 @@ class Job:
         job_type,
         creator,
         executions=None,
+        job_schedule=None,
+        project_id=None,
+        project_name=None,
         type=None,
         href=None,
         expand=None,
         items=None,
         count=None,
-        project_id=None,
-        project_name=None,
-        job_schedule=None,
         **kwargs,
     ):
         self._id = id
@@ -61,6 +61,7 @@ class Job:
         self._execution_api = execution_api.ExecutionsApi(project_id)
         self._execution_engine = execution_engine.ExecutionEngine(project_id)
         self._job_api = job_api.JobsApi(project_id, project_name)
+        self._href = href
 
     @classmethod
     def from_response_json(cls, json_dict, project_id, project_name):

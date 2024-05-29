@@ -23,7 +23,7 @@ from requests.exceptions import ConnectionError
 
 from hopsworks.decorators import connected, not_connected
 from hopsworks import client, version
-from hopsworks.core import project_api, secret_api, variable_api
+from hopsworks.core import project_api, secret_api, variable_api, hosts_api, services_api
 
 HOPSWORKS_PORT_DEFAULT = 443
 HOSTNAME_VERIFICATION_DEFAULT = True
@@ -196,14 +196,14 @@ class Connection:
 
         """
 
-        versionPattern = r"\d+\.\d+"
-        regexMatcher = re.compile(versionPattern)
+        version_pattern = r"\d+\.\d+"
+        regex_matcher = re.compile(version_pattern)
 
         client_version = version.__version__
         backend_version = self._variable_api.get_version("hopsworks")
 
-        major_minor_client = regexMatcher.search(client_version).group(0)
-        major_minor_backend = regexMatcher.search(backend_version).group(0)
+        major_minor_client = regex_matcher.search(client_version).group(0)
+        major_minor_backend = regex_matcher.search(backend_version).group(0)
 
         if major_minor_backend != major_minor_client:
             print("\n", file=sys.stderr)
@@ -261,6 +261,9 @@ class Connection:
             self._project_api = project_api.ProjectApi()
             self._secret_api = secret_api.SecretsApi()
             self._variable_api = variable_api.VariableApi()
+            self._project_api = project_api.ProjectApi()
+            self._hosts_api = hosts_api.HostsApi()
+            self._services_api = services_api.ServicesApi()
         except (TypeError, ConnectionError):
             self._connected = False
             raise

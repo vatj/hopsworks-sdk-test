@@ -14,6 +14,7 @@
 #   limitations under the License.
 #
 
+from typing import Any, Dict, Union
 from hopsworks import client, kafka_topic, kafka_schema, constants
 from hopsworks.client.exceptions import KafkaException
 import json
@@ -229,6 +230,27 @@ class KafkaApi:
             subjects.add(topic.schema.subject)
 
         return list(subjects)
+    
+    def get_subject(
+        self,
+        feature_store_id: int,
+        subject: str,
+        version: Union[str, int] = "latest",
+    ) -> Dict[str, Any]:
+        _client = client.get_instance()
+        path_params = [
+            "project",
+            _client._project_id,
+            "featurestores",
+            feature_store_id,
+            "kafka",
+            "subjects",
+            subject,
+            "versions",
+            version,
+        ]
+        headers = {"content-type": "application/json"}
+        return _client._send_request("GET", path_params, headers=headers)
 
     def get_schemas(self, subject: str):
         """Get all schema versions for the subject.

@@ -1,5 +1,5 @@
 #
-#   Copyright 2022 Logical Clocks AB
+#   Copyright 2021 Logical Clocks AB
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,11 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #
+from __future__ import annotations
 
 import json
-import humps
 
-from hopsworks import util
+import humps
+from hsfs import util
 
 
 class User:
@@ -47,7 +48,6 @@ class User:
     ):
         self._username = username
         self._email = email
-
         # This is because we return two different UserDTOs with either the field firstName or firstname
         if first_name is None:
             self._first_name = firstname
@@ -58,6 +58,18 @@ class User:
             self._last_name = lastname
         else:
             self._last_name = last_name
+        self._status = status
+        self._secret = secret
+        self._chosen_password = chosen_password
+        self._repeated_password = repeated_password
+        self._tos = tos
+        self._two_factor = two_factor
+        self._tours_state = tours_state
+        self._max_num_projects = max_num_projects
+        self._test_user = test_user
+        self._user_account_type = user_account_type
+        self._num_active_projects = num_active_projects
+        self._num_remaining_projects = num_remaining_projects
 
     @classmethod
     def from_response_json(cls, json_dict):
@@ -67,26 +79,6 @@ class User:
         else:
             return None
 
-    @property
-    def username(self):
-        """Username of the user"""
-        return self._username
-
-    @property
-    def email(self):
-        """Email of the user"""
-        return self._email
-
-    @property
-    def first_name(self):
-        """First name of the user"""
-        return self._first_name
-
-    @property
-    def last_name(self):
-        """Last name of the user"""
-        return self._last_name
-
     def json(self):
         return json.dumps(self, cls=util.Encoder)
 
@@ -95,3 +87,71 @@ class User:
 
     def __repr__(self):
         return f"User({self._username!r}, {self._email!r}, {self._first_name!r}, {self._last_name!r})"
+
+    @property
+    def username(self) -> str:
+        """Username of the user"""
+        return self._username
+
+    @property
+    def email(self) -> str:
+        """Email of the user"""
+        return self._email
+
+    @property
+    def first_name(self) -> str:
+        """First name of the user"""
+        return self._first_name
+
+    @property
+    def last_name(self) -> str:
+        """Last name of the user"""
+        return self._last_name
+
+    @property
+    def status(self):
+        return self._status
+
+    @property
+    def secret(self):
+        return self._secret
+
+    @property
+    def chosen_password(self):
+        return self._chosen_password
+
+    @property
+    def repeated_password(self):
+        return self._repeated_password
+
+    @property
+    def tos(self):
+        return self._tos
+
+    @property
+    def two_factor(self):
+        return self._two_factor
+
+    @property
+    def tours_state(self):
+        return self._tours_state
+
+    @property
+    def max_num_projects(self):
+        return self._max_num_projects
+
+    @property
+    def test_user(self):
+        return self._test_user
+
+    @property
+    def user_account_type(self):
+        return self._user_account_type
+
+    @property
+    def num_active_projects(self):
+        return self._num_active_projects
+
+    @property
+    def num_remaining_projects(self):
+        return self._num_remaining_projects

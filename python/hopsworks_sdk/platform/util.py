@@ -14,19 +14,11 @@
 #   limitations under the License.
 #
 
-from json import JSONEncoder
+
 from hopsworks.client.exceptions import JobException
 from hopsworks.git_file_status import GitFileStatus
 from hopsworks import client
 from urllib.parse import urljoin, urlparse
-
-
-class Encoder(JSONEncoder):
-    def default(self, obj):
-        try:
-            return obj.to_dict()
-        except AttributeError:
-            return super().default(obj)
 
 
 def convert_to_abs(path, current_proj_name):

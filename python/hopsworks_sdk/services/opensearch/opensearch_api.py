@@ -1,5 +1,5 @@
 #
-#   Copyright 2023 Logical Clocks AB
+#   Copyright 2022 Logical Clocks AB
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -18,29 +18,10 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from furl import furl
-from hsfs import client
-from hsfs.client.exceptions import FeatureStoreException
-from hsfs.core.variable_api import VariableApi
 
-
-class OPENSEARCH_CONFIG:
-    ELASTIC_ENDPOINT_ENV_VAR = "ELASTIC_ENDPOINT"
-    SSL_CONFIG = "es.net.ssl"
-    NODES_WAN_ONLY = "es.nodes.wan.only"
-    NODES = "es.nodes"
-    SSL_KEYSTORE_LOCATION = "es.net.ssl.keystore.location"
-    SSL_KEYSTORE_PASSWORD = "es.net.ssl.keystore.pass"
-    SSL_TRUSTSTORE_LOCATION = "es.net.ssl.truststore.location"
-    SSL_TRUSTSTORE_PASSWORD = "es.net.ssl.truststore.pass"
-    HTTP_AUTHORIZATION = "es.net.http.header.Authorization"
-    INDEX = "es.resource"
-    HOSTS = "hosts"
-    HTTP_COMPRESS = "http_compress"
-    HEADERS = "headers"
-    USE_SSL = "use_ssl"
-    VERIFY_CERTS = "verify_certs"
-    SSL_ASSERT_HOSTNAME = "ssl_assert_hostname"
-    CA_CERTS = "ca_certs"
+from hopsworks import client, constants
+from hopsworks.core import variable_api
+from hopsworks.client.exceptions import OpenSearchException
 
 
 class OpenSearchApi:
@@ -63,7 +44,7 @@ class OpenSearchApi:
         else:
             service_discovery_domain = self._variable_api.get_service_discovery_domain()
             if service_discovery_domain == "":
-                raise FeatureStoreException(
+                raise OpenSearchException(
                     "Client could not locate service_discovery_domain "
                     "in cluster configuration or variable is empty."
                 )
@@ -102,15 +83,17 @@ class OpenSearchApi:
         """
         url = furl(self._get_opensearch_url())
         return {
-            OPENSEARCH_CONFIG.HOSTS: [{"host": url.host, "port": url.port}],
-            OPENSEARCH_CONFIG.HTTP_COMPRESS: False,
-            OPENSEARCH_CONFIG.HEADERS: {
+            constants.OPENSEARCH_CONFIG.HOSTS: [{"host": url.host, "port": url.port}],
+            constants.OPENSEARCH_CONFIG.HTTP_COMPRESS: False,
+            constants.OPENSEARCH_CONFIG.HEADERS: {
                 "Authorization": self._get_authorization_token()
             },
-            OPENSEARCH_CONFIG.USE_SSL: True,
-            OPENSEARCH_CONFIG.VERIFY_CERTS: True,
-            OPENSEARCH_CONFIG.SSL_ASSERT_HOSTNAME: False,
-            OPENSEARCH_CONFIG.CA_CERTS: client.get_instance()._get_ca_chain_path(),
+            constants.OPENSEARCH_CONFIG.USE_SSL: True,
+            constants.OPENSEARCH_CONFIG.VERIFY_CERTS: True,
+            constants.OPENSEARCH_CONFIG.SSL_ASSERT_HOSTNAME: False,
+            constants.OPENSEARCH_CONFIG.CA_CERTS: client.get_instance()._get_ca_chain_path(
+                self._project_name
+            ),
         }
 
     def _get_authorization_token(self) -> str:
