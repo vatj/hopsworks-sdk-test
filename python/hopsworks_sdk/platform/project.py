@@ -29,7 +29,8 @@ from hopsworks.core import (
     kafka_api,
     opensearch_api,
 )
-from hsfs import feature_store
+from hopsworks_sdk.feature_store.rest_api_or_service import feature_store_api
+from hopsworks_sdk.feature_store import feature_store
 
 
 class Project:
@@ -69,6 +70,7 @@ class Project:
         self._git_api = git_api.GitApi(project_id, project_name)
         self._dataset_api = dataset_api.DatasetApi(project_id)
         self._environment_api = environment_api.EnvironmentApi(project_id, project_name)
+        self._feature_store_api = feature_store_api.FeatureStoreApi()
 
     @classmethod
     def from_response_json(cls, json_dict):
@@ -114,22 +116,7 @@ class Project:
         # Raises
             `RestAPIError`: If unable to connect
         """
-        from hsfs import connection
-
-        _client = client.get_instance()
-        if type(_client) == Client:  # If external client
-            engine = None
-            if _client._host == constants.HOSTS.APP_HOST:
-                engine = "python"
-            return connection(
-                host=_client._host,
-                port=_client._port,
-                project=self.name,
-                api_key_value=_client._auth._token,
-                engine=engine,
-            ).get_feature_store(name)
-        else:
-            return connection().get_feature_store(name)  # If internal client
+        self._feature_store_api.get_feature_store(name)  # If internal client
 
     def get_model_registry(self):
         """Connect to Project's Model Registry API.

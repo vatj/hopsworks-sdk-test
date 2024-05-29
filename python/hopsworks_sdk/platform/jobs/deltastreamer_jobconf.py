@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 
-from hsfs import util
+from hopsworks_sdk.platform import util
 
 
 class DeltaStreamerJobConf:
@@ -32,4 +32,4 @@ class DeltaStreamerJobConf:
         }
 
     def json(self):
-        return json.dumps(self, cls=util.FeatureStoreEncoder)
+        return json.dumps(self, cls=util.Encoder)

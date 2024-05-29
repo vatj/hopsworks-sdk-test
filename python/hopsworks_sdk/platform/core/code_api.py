@@ -15,7 +15,7 @@
 #
 from __future__ import annotations
 
-from hsfs import client
+from hopsworks_sdk.services.platform_client import client
 
 
 class CodeApi:

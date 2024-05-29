@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 
-from hsfs import util
+from hopsworks_sdk.platform import util
 
 
 class TrainingDatasetJobConf:

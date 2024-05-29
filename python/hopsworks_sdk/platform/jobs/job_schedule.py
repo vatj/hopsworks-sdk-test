@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Union
 
 import humps
-from hsfs import util
+from hopsworks_sdk.platform import util
 
 
 class JobSchedule:

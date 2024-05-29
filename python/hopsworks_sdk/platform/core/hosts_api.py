@@ -17,12 +17,12 @@ from __future__ import annotations
 
 from typing import Any, List
 
-from hsfs import client
+from hopsworks_sdk.services import platform_client
 
 
 class HostsApi:
     def get(self) -> List[Any]:
-        _client = client.get_instance()
+        _client = platform_client.get_instance()
         path_params = [
             "hosts",
         ]

@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import json
 
-from hsfs import client, feature_view, tag
+from hsfs import feature_view
+from hopsworks_sdk.services import platform_client
+from hopsworks_sdk.platform import tag
 
 
 class TagsApi:
@@ -46,7 +48,7 @@ class TagsApi:
         :param value: value of the tag to be added
         :type value: str
         """
-        _client = client.get_instance()
+        _client = platform_client.get_instance()
         path_params = self.get_path(metadata_instance, training_dataset_version) + [
             name
         ]
@@ -65,7 +67,7 @@ class TagsApi:
         :param name: name of the tag to be removed
         :type name: str
         """
-        _client = client.get_instance()
+        _client = platform_client.get_instance()
         path_params = self.get_path(metadata_instance, training_dataset_version) + [
             name
         ]
@@ -85,7 +87,7 @@ class TagsApi:
         :return: dict of tag name/values
         :rtype: dict
         """
-        _client = client.get_instance()
+        _client = platform_client.get_instance()
         path_params = self.get_path(metadata_instance, training_dataset_version)
 
         if name is not None:
@@ -99,7 +101,7 @@ class TagsApi:
         }
 
     def get_path(self, metadata_instance, training_dataset_version=None):
-        _client = client.get_instance()
+        _client = platform_client.get_instance()
         if isinstance(metadata_instance, feature_view.FeatureView):
             path = [
                 "project",
