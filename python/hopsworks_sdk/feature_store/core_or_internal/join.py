@@ -35,7 +35,7 @@ class Join:
 
     def __init__(
         self,
-        query: "query.Query",
+        query: query.Query,
         on: Optional[List[str]],
         left_on: Optional[List[str]],
         right_on: Optional[List[str]],

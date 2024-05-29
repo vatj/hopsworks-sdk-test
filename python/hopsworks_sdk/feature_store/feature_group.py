@@ -21,11 +21,11 @@ import logging
 import time
 import warnings
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, TYPE_CHECKING
 
 import avro.schema
 import confluent_kafka
-import great_expectations as ge
+
 import humps
 import numpy as np
 import pandas as pd
@@ -77,6 +77,9 @@ from hsfs.statistics import Statistics
 from hsfs.statistics_config import StatisticsConfig
 from hsfs.validation_report import ValidationReport
 
+if TYPE_CHECKING:
+    import great_expectations as ge
+
 
 _logger = logging.getLogger(__name__)
 
@@ -94,7 +97,7 @@ class FeatureGroupBase:
         id: Optional[int] = None,
         embedding_index: Optional["EmbeddingIndex"] = None,
         expectation_suite: Optional[
-            Union["ExpectationSuite", "ge.core.ExpectationSuite", Dict[str, Any]]
+            Union["ExpectationSuite", ge.core.ExpectationSuite, Dict[str, Any]]
         ] = None,
         online_topic_name: Optional[str] = None,
         topic_name: Optional[str] = None,
@@ -130,7 +133,7 @@ class FeatureGroupBase:
         self._code_engine: "code_engine.CodeEngine" = code_engine.CodeEngine(
             featurestore_id, self.ENTITY_TYPE
         )
-        self._great_expectation_engine: "great_expectation_engine.GreatExpectationEngine" = great_expectation_engine.GreatExpectationEngine(
+        self._great_expectation_engine: great_expectation_engine.GreatExpectationEngine = great_expectation_engine.GreatExpectationEngine(
             featurestore_id
         )
         if self._id is not None:
@@ -144,7 +147,7 @@ class FeatureGroupBase:
                 feature_store_id=featurestore_id, feature_group_id=self._id
             )
             self._validation_report_engine: Optional[
-                "validation_report_engine.ValidationReportEngine"
+                validation_report_engine.ValidationReportEngine
             ] = validation_report_engine.ValidationReportEngine(
                 featurestore_id, self._id
             )
