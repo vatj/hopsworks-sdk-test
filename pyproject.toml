@@ -19,18 +19,19 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [project.optional-dependencies]
-default = ["hopsworks[python,opensearch,pandas,aws]"]
+default = ["hopsworks[python,opensearch,pandas,sql,aws]"]
 pyarrow = ["pyarrow>=10.0", "numpy<2"]
 pandas = ["pandas<2.2.0", "numpy<2"]
 aws = ["boto3"]
 opensearch = ["opensearch-py>=1.1.0,<=2.4.2",]
-kafka = ["confluent-kafka<=2.3.0",]
-polars = ["polars>=0.20.18,<=0.21.0",]
-great_expectations = ["great_expectations==0.18.12",]
+kafka = ["confluent-kafka<=2.3.0"]
+polars = ["polars>=0.20.18,<=0.21.0"]
+great_expectations = ["great_expectations==0.18.12"]
 sql = [
     "sqlalchemy",
     "PyMySQL[rsa]",
     "aiomysql[sa] @ git+https://git@github.com/logicalclocks/aiomysql",
+    "pyhopshive[thrift]",
 ]
 dev = [
     "pytest==7.4.4",
@@ -71,7 +72,6 @@ hive = [
 ]
 python = [
     "hopsworks[kafka,pyarrow,aws]",
-    "pyhopshive[thrift]",
     "fastavro>=1.4.11,<=1.8.4",
     "tqdm",
 ]
