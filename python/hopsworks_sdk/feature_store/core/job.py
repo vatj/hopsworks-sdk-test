@@ -222,7 +222,7 @@ class Job:
         return self._update_schedule(job_schedule)
 
     def _update_schedule(self, job_schedule):
-        self._job_schedule = self._job_api.create_or_update_schedule_job(
+        self._job_schedule = self._job_api._schedule_job(
             self._name, job_schedule.to_dict()
         )
         return self._job_schedule

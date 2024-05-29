@@ -14,6 +14,7 @@
 #   limitations under the License.
 #
 
+from typing import Optional
 from hopsworks import client, execution
 
 
@@ -50,11 +51,13 @@ class ExecutionsApi:
             job,
         )
 
-    def _get_all(self, job):
+    def _get_all(self, job, limit: Optional[int] = None):
         _client = client.get_instance()
         path_params = ["project", self._project_id, "jobs", job.name, "executions"]
 
         query_params = {"sort_by": "submissiontime:desc"}
+        if limit:
+            query_params["limit"] = limit
 
         headers = {"content-type": "application/json"}
         return execution.Execution.from_response_json(

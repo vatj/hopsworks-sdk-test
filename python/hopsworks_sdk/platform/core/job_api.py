@@ -13,11 +13,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #
+from __future__ import annotations
 
 import json
+from typing import Any, Dict, Union
 
 from hopsworks import client, job, util, job_schedule
 from hopsworks.client.exceptions import RestAPIError
+from hsfs.core import (
+    execution,
+    ingestion_job_conf,
+    job,
+    job_configuration,
+    job_schedule,
+)
 
 
 class JobsApi:
@@ -29,7 +38,11 @@ class JobsApi:
         self._project_id = project_id
         self._project_name = project_name
 
-    def create_job(self, name: str, config: dict):
+    def create_job(self, name: str,
+        config: Union[
+            job_configuration.JobConfiguration, ingestion_job_conf.IngestionJobConf, Dict[str, Any]
+        ],
+    ) -> job.Job:
         """Create a new job or update an existing one.
 
         ```python
@@ -61,10 +74,15 @@ class JobsApi:
 
         path_params = ["project", self._project_id, "jobs", name]
 
+        if isinstance(config, dict):
+            config_json = json.dumps(config)
+        else:
+            config_json = config.json()
+
         headers = {"content-type": "application/json"}
         created_job = job.Job.from_response_json(
             _client._send_request(
-                "PUT", path_params, headers=headers, data=json.dumps(config)
+                "PUT", path_params, headers=headers, data=config_json
             ),
             self._project_id,
             self._project_name,
@@ -72,7 +90,7 @@ class JobsApi:
         print(created_job.get_url())
         return created_job
 
-    def get_job(self, name: str):
+    def get_job(self, name: str) -> job.Job:
         """Get a job.
 
         # Arguments
@@ -193,7 +211,7 @@ class JobsApi:
             self._project_name,
         )
 
-    def _schedule_job(self, name, schedule_config):
+    def _schedule_job(self, name: str, schedule_config: Dict[str, Any]) -> job_schedule.JobSchedule:
         _client = client.get_instance()
         path_params = ["project", self._project_id, "jobs", name, "schedule", "v2"]
         headers = {"content-type": "application/json"}
@@ -204,12 +222,13 @@ class JobsApi:
                 method, path_params, headers=headers, data=json.dumps(schedule_config)
             )
         )
-
-    def _delete_schedule_job(self, name):
+    
+    def delete_schedule_job(self, name: str) -> None:
         _client = client.get_instance()
-        path_params = ["project", self._project_id, "jobs", name, "schedule", "v2"]
+        path_params = ["project", _client._project_id, "jobs", name, "schedule", "v2"]
 
         return _client._send_request(
             "DELETE",
             path_params,
         )
+    

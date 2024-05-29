@@ -591,7 +591,7 @@ class FeatureMonitoringConfig:
             end_time=self._job_schedule.end_date_time,
             enabled=enabled,
         )
-        self.job_schedule = self._job_api.create_or_update_schedule_job(
+        self.job_schedule = self._job_api._schedule_job(
             self._job_name, job_schedule.to_dict()
         )
         return self._job_schedule
